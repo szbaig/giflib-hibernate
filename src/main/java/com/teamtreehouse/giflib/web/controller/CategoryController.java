@@ -34,9 +34,7 @@ public class CategoryController {
     // Single category page
     @RequestMapping("/categories/{categoryId}")
     public String category(@PathVariable Long categoryId, Model model) {
-        // TODO: Get the category given by categoryId
-        Category category = null;
-
+        Category category = categoryService.findById(categoryId);
         model.addAttribute("category", category);
         return "category/details";
     }
@@ -44,35 +42,53 @@ public class CategoryController {
     // Form for adding a new category
     @RequestMapping("categories/add")
     public String formNewCategory(Model model) {
-        // TODO: Add model attributes needed for new form
         if(!model.containsAttribute("category")) {
             model.addAttribute("category", new Category());
         }
         model.addAttribute("colors", Color.values());
+        model.addAttribute("action", "/categories");
+        model.addAttribute("heading", "New Category");
+        model.addAttribute("submit", "Add");
+
         return "category/form";
     }
 
     // Form for editing an existing category
     @RequestMapping("categories/{categoryId}/edit")
     public String formEditCategory(@PathVariable Long categoryId, Model model) {
-        // TODO: Add model attributes needed for edit form
-
+        if(!model.containsAttribute("category")) {
+            model.addAttribute("category", categoryService.findById(categoryId));
+        }
+        model.addAttribute("colors", Color.values());
+        model.addAttribute("action", String.format("/categories/%s", categoryId));
+        model.addAttribute("heading", "Edit Category");
+        model.addAttribute("submit", "Update");
         return "category/form";
     }
 
     // Update an existing category
     @RequestMapping(value = "/categories/{categoryId}", method = RequestMethod.POST)
-    public String updateCategory() {
-        // TODO: Update category if valid data was received
+    public String updateCategory(@Valid Category category, BindingResult result, RedirectAttributes redirectAttributes) {
+        if(result.hasErrors()) {
+            // Include validation errors on redirect.
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.category", result);
 
-        // TODO: Redirect browser to /categories
-        return null;
+            // Add category if invalid data was received.
+            redirectAttributes.addFlashAttribute("category", category);
+
+            // Redirect back to form and flash errors.
+            return String.format("redirect:/categories/%s/edit", category.getId());
+        }
+
+        categoryService.save(category);
+
+        redirectAttributes.addFlashAttribute("flash", new FlashMessage("Category successfully updated!", FlashMessage.Status.SUCCESS));
+        return "redirect:/categories";
     }
 
     // Add a category
     @RequestMapping(value = "/categories", method = RequestMethod.POST)
     public String addCategory(@Valid Category category, BindingResult result, RedirectAttributes redirectAttributes) {
-        // TODO: Add category if valid data was received
         if(result.hasErrors()) {
             // Include validation errors on redirect.
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.category", result);
@@ -92,10 +108,13 @@ public class CategoryController {
 
     // Delete an existing category
     @RequestMapping(value = "/categories/{categoryId}/delete", method = RequestMethod.POST)
-    public String deleteCategory(@PathVariable Long categoryId) {
-        // TODO: Delete category if it contains no GIFs
-
-        // TODO: Redirect browser to /categories
-        return null;
+    public String deleteCategory(@PathVariable Long categoryId, RedirectAttributes redirectAttributes) {
+        Category category = categoryService.findById(categoryId);
+        if(category.getGifs().size() > 0) {
+            redirectAttributes.addFlashAttribute("flash", new FlashMessage("Only empty categories can be deleted!", FlashMessage.Status.FAILURE));
+        }
+        categoryService.delete(category);
+        redirectAttributes.addFlashAttribute("flash", new FlashMessage("Category was deleted", FlashMessage.Status.SUCCESS));
+        return "redirect:/categories";
     }
 }

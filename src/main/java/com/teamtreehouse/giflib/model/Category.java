@@ -12,6 +12,7 @@ public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @NotNull
     @Size(min = 3, max = 12)
     private String name;
@@ -19,6 +20,7 @@ public class Category {
     @NotNull
     @Pattern(regexp = "#[0-9a-fA-F]{6}")
     private String colorCode;
+
     @OneToMany(mappedBy = "category")
     private List<Gif> gifs = new ArrayList<>();
 
